@@ -1,7 +1,4 @@
 # GoHttpsClientForCSharp
-Wrapper for GoHttpsClient in CSharp .NET
-
-# GoHttpsClientForCSharp
 Encapsulamento do projeto GoHttpsClient para uso facilitado em C#
 
 ## Começando
