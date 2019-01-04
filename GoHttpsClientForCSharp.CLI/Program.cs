@@ -18,7 +18,7 @@ namespace GoHttpsClientForCSharp.CLI
 
 				var successCount = 0;
 				var failureCount = 0;
-				Parallel.For(0, 100, i =>
+				Parallel.For(0, 50, i =>
 				{
 					while (true)
 					{
@@ -28,12 +28,15 @@ namespace GoHttpsClientForCSharp.CLI
 						lock (goHttpsClient)
 						{
 							if (response.IsSuccessStatusCode) { successCount++; } else { failureCount++; }
-							if(refreshStopwatch.Elapsed < REFRESH_INTERVAL) { continue; }
+							if (refreshStopwatch.Elapsed < REFRESH_INTERVAL) { continue; }
 
 							Console.Clear();
-							Console.WriteLine($"Successes: {successCount}");
-							Console.WriteLine($"Failures : {failureCount}");
+							Console.WriteLine($"Successes: {successCount}/s");
+							Console.WriteLine($"Failures : {failureCount}/s");
+
 							refreshStopwatch.Restart();
+							successCount = 0;
+							failureCount = 0;
 						}
 					}
 				});
