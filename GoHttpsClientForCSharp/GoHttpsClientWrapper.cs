@@ -1,4 +1,4 @@
-using GoHttpsClientForCSharp.Extensions;
+﻿using GoHttpsClientForCSharp.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -104,8 +104,8 @@ namespace GoHttpsClientForCSharp
 		private static IEnumerable<string> EnumeratePointerStrings(IntPtr pointer)
 		{
 			if (pointer == IntPtr.Zero) { yield break; }
-			
-			for (var i = 0; Marshal.ReadIntPtr(pointer +  i) != IntPtr.Zero; i += IntPtr.Size)
+
+			for (var i = 0; Marshal.ReadIntPtr(pointer + i) != IntPtr.Zero; i += IntPtr.Size)
 			{
 				yield return PointerToString(Marshal.ReadIntPtr(pointer + i));
 			}
@@ -129,7 +129,7 @@ namespace GoHttpsClientForCSharp
 			var byteArray = new byte[length];
 
 			var dataPtr = pointer + IntPtr.Size;
-			for (var i=0; i<length; i++)
+			for (var i = 0; i < length; i++)
 			{
 				byteArray[i] = Marshal.ReadByte(dataPtr + i);
 			}
