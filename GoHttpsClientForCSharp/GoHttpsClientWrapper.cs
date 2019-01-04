@@ -1,4 +1,4 @@
-﻿using GoHttpsClientForCSharp.Extensions;
+using GoHttpsClientForCSharp.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -91,6 +91,7 @@ namespace GoHttpsClientForCSharp
 			var error = PointerToString(GetError(errorId));
 			if (string.IsNullOrEmpty(error)) { return; }
 
+			if (error.Contains("net/http: request canceled (Client.Timeout exceeded while awaiting headers)")) { throw new TimeoutException(error); }
 			throw new GolangException(error);
 		}
 
