@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -30,7 +31,7 @@ namespace GoHttpsClientForCSharp
 			get { return this.timeout; }
 			set
 			{
-				if (GoHttpsClientWrapper.SetClientTimeout(this.clientId, Convert.ToInt32(value.TotalMilliseconds)) == false) { throw new InvalidOperationException(); }
+				if (GoHttpsClientWrapper.SetClientTimeout(this.clientId, (int)value.TotalSeconds) == false) { throw new InvalidOperationException(); }
 
 				this.timeout = value;
 			}
