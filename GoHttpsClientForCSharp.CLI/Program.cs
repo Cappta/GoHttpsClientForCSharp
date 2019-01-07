@@ -22,7 +22,7 @@ namespace GoHttpsClientForCSharp.CLI
 				{
 					while (true)
 					{
-						var request = new HttpRequestMessage(HttpMethod.Get, "https://cert.paymentpage.com/");
+						var request = new HttpRequestMessage(HttpMethod.Get, "https://cappta.com.br/");
 						var response = goHttpsClient.Send(request);
 
 						lock (goHttpsClient)

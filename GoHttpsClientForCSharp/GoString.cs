@@ -20,8 +20,6 @@ namespace GoHttpsClientForCSharp
 		public IntPtr Buffer;
 
 		public void Dispose()
-		{
-			Marshal.FreeHGlobal(this.Buffer);
-		}
+			=> Marshal.FreeHGlobal(this.Buffer);
 	}
 }

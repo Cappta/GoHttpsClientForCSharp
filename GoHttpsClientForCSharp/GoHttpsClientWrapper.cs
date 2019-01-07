@@ -1,9 +1,8 @@
 ﻿using GoHttpsClientForCSharp.Extensions;
 using System;
-using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace GoHttpsClientForCSharp
 {
@@ -36,13 +35,13 @@ namespace GoHttpsClientForCSharp
 
 		[DllImport(DLL_PATH, CallingConvention = CALLING_CONVENTION)]
 		private static extern bool SetRequestHeader(ObjectId requestID, GoString key, GoString value);
-		public static bool SetRequestHeader(ObjectId requestID, string key, string value)
+		public static bool SetRequestHeader(ObjectId requestId, string key, string value)
 		{
 			using (var goKey = new GoString(key))
 			{
 				using (var goValue = new GoString(value))
 				{
-					return SetRequestHeader(requestID, goKey, goValue);
+					return SetRequestHeader(requestId, goKey, goValue);
 				}
 			}
 		}
@@ -51,90 +50,69 @@ namespace GoHttpsClientForCSharp
 		public static extern ObjectId PerformRequest(ObjectId clientID, ObjectId requestID);
 
 		[DllImport(DLL_PATH, CallingConvention = CALLING_CONVENTION, EntryPoint = "GetResponseStatus")]
-		private static extern IntPtr GoGetResponseStatus(ObjectId responseID);
+		private static extern IntPtrWrapper GoGetResponseStatus(ObjectId responseID);
 		public static string GetResponseStatus(ObjectId responseID)
 		{
-			return PointerToString(GoGetResponseStatus(responseID));
+			using (var intPtrWrapper = GoGetResponseStatus(responseID))
+			{
+				return intPtrWrapper.Ptr.ToUTF8();
+			}
 		}
 
 		[DllImport(DLL_PATH, CallingConvention = CALLING_CONVENTION)]
 		public static extern int GetResponseStatusCode(ObjectId responseID);
 
 		[DllImport(DLL_PATH, CallingConvention = CALLING_CONVENTION, EntryPoint = "GetResponseHeaderKeys")]
-		private static extern IntPtr GoGetResponseHeaderKeys(ObjectId responseID);
+		private static extern IntPtrWrapper GoGetResponseHeaderKeys(ObjectId responseID);
 		public static string[] GetResponseHeaderKeys(ObjectId responseID)
 		{
-			return EnumeratePointerStrings(GoGetResponseHeaderKeys(responseID)).ToArray();
+			using (var intPtrWrapper = GoGetResponseHeaderKeys(responseID))
+			{
+				return intPtrWrapper.Ptr.EnumerateUTF8().ToArray();
+			}
 		}
 
 		[DllImport(DLL_PATH, CallingConvention = CALLING_CONVENTION, EntryPoint = "GetResponseHeaderValue")]
-		private static extern IntPtr GoGetResponseHeaderValue(ObjectId responseID, GoString key);
+		private static extern IntPtrWrapper GoGetResponseHeaderValue(ObjectId responseID, GoString key);
 		public static string[] GetResponseHeaderValue(ObjectId responseID, string key)
 		{
 			using (var goKey = new GoString(key))
 			{
-				return EnumeratePointerStrings(GoGetResponseHeaderValue(responseID, goKey)).ToArray();
+				using (var intPtrWrapper = GoGetResponseHeaderValue(responseID, goKey))
+				{
+					return intPtrWrapper.Ptr.EnumerateUTF8().ToArray();
+				}
 			}
 		}
 
 		[DllImport(DLL_PATH, CallingConvention = CALLING_CONVENTION, EntryPoint = "GetResponseBody")]
-		private static extern IntPtr GoGetResponseBody(ObjectId responseID);
+		private static extern IntPtrWrapper GoGetResponseBody(ObjectId responseID);
 		public static byte[] GetResponseBody(ObjectId responseID)
 		{
-			return PointerToByteArray(GoGetResponseBody(responseID));
+			using (var intPtrWrapper = GoGetResponseBody(responseID))
+			{
+				return intPtrWrapper.Ptr.ToByteArray();
+			}
 		}
 
 		[DllImport(DLL_PATH, CallingConvention = CALLING_CONVENTION)]
-		private static extern IntPtr GetError(ObjectId errorId);
+		private static extern IntPtrWrapper GetError(ObjectId errorId);
 		public static void ThrowErrorIfAny(ObjectId errorId)
 		{
-			var error = PointerToString(GetError(errorId));
-			if (string.IsNullOrEmpty(error)) { return; }
-
-			if (error.Contains("net/http: request canceled (Client.Timeout exceeded while awaiting headers)")) { throw new TimeoutException(error); }
-			throw new GolangException(error);
+			using (var intPtrWrapper = GetError(errorId))
+			{
+				var error = intPtrWrapper.Ptr.ToUTF8();
+				if (string.IsNullOrEmpty(error)) { return; }
+				
+				if (error.Contains("net/http: request canceled (Client.Timeout exceeded while awaiting headers)")) { throw new TimeoutException(error); }
+				throw new GolangException(error);
+			}
 		}
 
 		[DllImport(DLL_PATH, CallingConvention = CALLING_CONVENTION)]
 		public static extern void ReleaseObject(ObjectId objectId);
 
 		[DllImport(DLL_PATH, CallingConvention = CALLING_CONVENTION)]
-		private static extern void Free(IntPtr pointer);
-
-		private static IEnumerable<string> EnumeratePointerStrings(IntPtr pointer)
-		{
-			if (pointer == IntPtr.Zero) { yield break; }
-
-			for (var i = 0; Marshal.ReadIntPtr(pointer + i) != IntPtr.Zero; i += IntPtr.Size)
-			{
-				yield return PointerToString(Marshal.ReadIntPtr(pointer + i));
-			}
-			Free(pointer);
-		}
-
-		private static string PointerToString(IntPtr pointer)
-		{
-			if (pointer == IntPtr.Zero) { return null; }
-
-			var validBytes = pointer.ReadBytesUntilZero().ToArray();
-			Free(pointer);
-			return Encoding.UTF8.GetString(validBytes);
-		}
-
-		private static byte[] PointerToByteArray(IntPtr pointer)
-		{
-			if (pointer == IntPtr.Zero) { return null; }
-
-			var length = Marshal.ReadInt32(pointer);
-			var byteArray = new byte[length];
-
-			var dataPtr = pointer + IntPtr.Size;
-			for (var i = 0; i < length; i++)
-			{
-				byteArray[i] = Marshal.ReadByte(dataPtr + i);
-			}
-			Free(pointer);
-			return byteArray;
-		}
+		public static extern void Free(IntPtr pointer);
 	}
 }

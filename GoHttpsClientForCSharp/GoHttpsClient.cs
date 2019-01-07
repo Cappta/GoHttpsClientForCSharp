@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -37,54 +36,73 @@ namespace GoHttpsClientForCSharp
 			}
 		}
 
-		public HttpResponseMessage Send(HttpRequestMessage request)
+		public HttpResponseMessage Send(HttpRequestMessage httpRequestMessage)
 		{
-			var method = request.Method.Method;
-			var url = request.RequestUri.AbsoluteUri;
-			var body = request.Content?.ReadAsByteArrayAsync().Result;
-
-			using (var requestId = GoHttpsClientWrapper.CreateRequest(method, url, body))
+			using (var requestId = this.CreateRequest(httpRequestMessage))
 			{
 				GoHttpsClientWrapper.ThrowErrorIfAny(requestId);
 
-				foreach (var header in request.Headers)
+				this.SetRequestHeaders(requestId, httpRequestMessage);
+
+				var response = this.PerformRequest(requestId);
+				response.RequestMessage = httpRequestMessage;
+
+				return response;
+			}
+		}
+
+		private ObjectId CreateRequest(HttpRequestMessage httpRequestMessage)
+		{
+			var method = httpRequestMessage.Method.Method;
+			var url = httpRequestMessage.RequestUri.AbsoluteUri;
+			var body = httpRequestMessage.Content?.ReadAsByteArrayAsync().Result;
+
+			return GoHttpsClientWrapper.CreateRequest(method, url, body);
+		}
+
+		private void SetRequestHeaders(ObjectId requestId, HttpRequestMessage httpRequestMessage)
+		{
+			foreach (var header in httpRequestMessage.Headers)
+			{
+				GoHttpsClientWrapper.SetRequestHeader(requestId, header.Key, string.Join(",", header.Value));
+			}
+
+			if (httpRequestMessage.Content == null) { return; }
+			foreach (var header in httpRequestMessage.Content.Headers)
+			{
+				GoHttpsClientWrapper.SetRequestHeader(requestId, header.Key, string.Join(",", header.Value));
+			}
+		}
+
+		private HttpResponseMessage PerformRequest(ObjectId requestId)
+		{
+			using (var responseId = GoHttpsClientWrapper.PerformRequest(this.clientId, requestId))
+			{
+				GoHttpsClientWrapper.ThrowErrorIfAny(requestId);
+
+				var httpResponseMessage = new HttpResponseMessage();
+				httpResponseMessage.ReasonPhrase = GoHttpsClientWrapper.GetResponseStatus(responseId);
+				var statusCode = GoHttpsClientWrapper.GetResponseStatusCode(responseId);
+				httpResponseMessage.StatusCode = (HttpStatusCode)Math.Max(0, statusCode);
+				this.SetResponseHeaders(responseId, httpResponseMessage);
+				httpResponseMessage.Content = this.GetHttpContent(responseId);
+
+				return httpResponseMessage;
+			}
+		}
+
+		private void SetResponseHeaders(ObjectId responseId, HttpResponseMessage httpResponseMessage)
+		{
+			var headers = GoHttpsClientWrapper.GetResponseHeaderKeys(responseId);
+			foreach (var header in headers)
+			{
+				var values = GoHttpsClientWrapper.GetResponseHeaderValue(responseId, header);
+
+				try
 				{
-					GoHttpsClientWrapper.SetRequestHeader(requestId, header.Key, string.Join(",", header.Value));
+					httpResponseMessage.Headers.Add(header, string.Join(",", values));
 				}
-				if (request.Content != null)
-				{
-					foreach (var header in request.Content.Headers)
-					{
-						GoHttpsClientWrapper.SetRequestHeader(requestId, header.Key, string.Join(",", header.Value));
-					}
-				}
-
-				using (var responseId = GoHttpsClientWrapper.PerformRequest(this.clientId, requestId))
-				{
-					GoHttpsClientWrapper.ThrowErrorIfAny(responseId);
-
-					var response = new HttpResponseMessage();
-					response.ReasonPhrase = GoHttpsClientWrapper.GetResponseStatus(responseId);
-					var statusCode = GoHttpsClientWrapper.GetResponseStatusCode(responseId);
-					response.StatusCode = (HttpStatusCode)statusCode;
-					response.RequestMessage = request;
-
-					var headers = GoHttpsClientWrapper.GetResponseHeaderKeys(responseId);
-					foreach (var header in headers)
-					{
-						var values = GoHttpsClientWrapper.GetResponseHeaderValue(responseId, header);
-
-						try
-						{
-							response.Headers.Add(header, string.Join(",", values));
-						}
-						catch (InvalidOperationException) { /* Ignore */ }
-					}
-
-					response.Content = this.GetHttpContent(responseId);
-
-					return response;
-				}
+				catch (InvalidOperationException) { /* Ignore */ }
 			}
 		}
 

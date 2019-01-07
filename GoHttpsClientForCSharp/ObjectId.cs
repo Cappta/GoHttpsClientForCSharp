@@ -9,8 +9,6 @@ namespace GoHttpsClientForCSharp
 		public int Id;
 
 		public void Dispose()
-		{
-			GoHttpsClientWrapper.ReleaseObject(this);
-		}
+			=> GoHttpsClientWrapper.ReleaseObject(this);
 	}
 }
