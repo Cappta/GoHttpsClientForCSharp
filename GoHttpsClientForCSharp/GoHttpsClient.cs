@@ -8,7 +8,7 @@ namespace GoHttpsClientForCSharp
 {
 	public class GoHttpsClient
 	{
-		private static readonly string[] BINARY_CONTENT_TYPES = new[] { "application/octet-stream" };
+		private static readonly string[] BINARY_CONTENT_TYPES = new[] { "application/octet-stream", "application/zip" };
 
 		private const string CONTENT_TYPE_HEADER = "Content-Type";
 
