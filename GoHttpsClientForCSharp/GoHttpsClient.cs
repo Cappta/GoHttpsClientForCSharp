@@ -78,7 +78,7 @@ namespace GoHttpsClientForCSharp
 		{
 			using (var responseId = GoHttpsClientWrapper.PerformRequest(this.clientId, requestId))
 			{
-				GoHttpsClientWrapper.ThrowErrorIfAny(requestId);
+				GoHttpsClientWrapper.ThrowErrorIfAny(responseId);
 
 				var httpResponseMessage = new HttpResponseMessage();
 				httpResponseMessage.ReasonPhrase = GoHttpsClientWrapper.GetResponseStatus(responseId);
