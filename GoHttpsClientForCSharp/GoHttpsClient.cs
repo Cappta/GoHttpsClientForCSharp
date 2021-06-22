@@ -6,7 +6,7 @@ using System.Text;
 
 namespace GoHttpsClientForCSharp
 {
-	public class GoHttpsClient
+	public class GoHttpsClient : IDisposable
 	{
 		private static readonly string[] BINARY_CONTENT_TYPES = new[] { "application/octet-stream", "application/zip" };
 
@@ -14,6 +14,8 @@ namespace GoHttpsClientForCSharp
 
 		private readonly ObjectId clientId;
 		private TimeSpan timeout;
+
+		private bool disposed = false;
 
 		public GoHttpsClient()
 		{
@@ -25,12 +27,27 @@ namespace GoHttpsClientForCSharp
 			this.Timeout = timeout;
 		}
 
+		~GoHttpsClient()
+		{
+			this.Dispose();
+		}
+
+		private ObjectId ClientId
+		{
+			get
+			{
+				if (this.disposed) { throw new ObjectDisposedException(nameof(GoHttpsClient)); }
+
+				return this.clientId;
+			}
+		}
+
 		public TimeSpan Timeout
 		{
 			get { return this.timeout; }
 			set
 			{
-				if (GoHttpsClientWrapper.SetClientTimeout(this.clientId, (int)value.TotalSeconds) == false) { throw new InvalidOperationException(); }
+				if (GoHttpsClientWrapper.SetClientTimeout(this.ClientId, (int)value.TotalSeconds) == false) { throw new InvalidOperationException(); }
 
 				this.timeout = value;
 			}
@@ -76,7 +93,7 @@ namespace GoHttpsClientForCSharp
 
 		private HttpResponseMessage PerformRequest(ObjectId requestId)
 		{
-			using (var responseId = GoHttpsClientWrapper.PerformRequest(this.clientId, requestId))
+			using (var responseId = GoHttpsClientWrapper.PerformRequest(this.ClientId, requestId))
 			{
 				GoHttpsClientWrapper.ThrowErrorIfAny(responseId);
 
@@ -118,6 +135,14 @@ namespace GoHttpsClientForCSharp
 
 			var responseContent = Encoding.UTF8.GetString(responseBody);
 			return new StringContent(responseContent);
+		}
+
+		public void Dispose()
+		{
+			if (this.disposed) { return; }
+
+			this.clientId.Dispose();
+			this.disposed = true;
 		}
 	}
 }
